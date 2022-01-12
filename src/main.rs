@@ -35,7 +35,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 
     // _conn_in needs to be a named parameter, because it needs to be kept alive until the end of the scope
     let _conn_in = midi_in.connect(&in_port, "midir-forward", move |stamp, message, _| {
-        conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+        // conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
         // Start here
         time_map::trigger(stamp, message, &mut conn_out);
     }, ())?;

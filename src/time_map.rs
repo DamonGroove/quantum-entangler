@@ -27,6 +27,17 @@ pub fn trigger(timestamp: u64, message: &[u8], conn_out: &mut midir::MidiOutputC
   let mut buffer = MIDI_BUFFER.lock().unwrap();
   buffer.push(TimeMap{timestamp: timestamp, message: message.to_vec()});
 
+  // Device Config
+  // mandala_pad
+  if message[0] == 144 {
+    conn_out.send(&[message[0], buffer[buffer.len() - 2].message[2], message[2]]).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+
+  } else {
+    // Default device config
+    conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+  }
+
+  // Toolset
   if message[2] == 0 {
     //^^Should never change^^
     
@@ -34,10 +45,11 @@ pub fn trigger(timestamp: u64, message: &[u8], conn_out: &mut midir::MidiOutputC
     // custom scripting starts here
 
     // Working rules and example
-    if buffer.len() % 3 == 0 { 
+    // random_play
+    if buffer.len() % 12 == 0 { 
       let mut rng = rand::thread_rng();
 
-      let cycle = rng.gen_range(0..5);
+      let cycle = rng.gen_range(0..1);
       println!("Play {} notes", cycle);
       for _ in 0..cycle {
         let index = rng.gen_range(0..buffer.len() - 1);
