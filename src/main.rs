@@ -37,7 +37,18 @@ fn run() -> Result<(), Box<dyn Error>> {
     let _conn_in = midi_in.connect(&in_port, "midir-forward", move |stamp, message, _| {
         // conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
         // Start here
-        time_map::trigger(stamp, message, &mut conn_out);
+        let mut buffer = time_map::MIDI_BUFFER.lock().unwrap();
+        buffer.push(time_map::TimeMap{timestamp: stamp, message: message.to_vec()});
+        // Device Config
+        // mandala_pad
+        if message[0] == 144 {
+            conn_out.send(&[message[0], buffer[buffer.len() - 2].message[2], message[2]]).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+
+        } else {
+            // Default device config
+            conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+        }
+        triggers::random::trigger(stamp, message, &mut conn_out);
     }, ())?;
 
     println!("Connections open, forwarding from '{}' to '{}' (press enter to exit) ...", in_port_name, out_port_name);
