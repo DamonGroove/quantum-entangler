@@ -7,6 +7,8 @@ use std::error::Error;
 use midir::{MidiInput, MidiOutput, MidiIO, Ignore};
 
 mod time_map;
+mod notes;
+mod patterns;
 
 
 fn main() {
@@ -38,17 +40,27 @@ fn run() -> Result<(), Box<dyn Error>> {
         // conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
         // Start here
         let mut buffer = time_map::MIDI_BUFFER.lock().unwrap();
-        buffer.push(time_map::TimeMap{timestamp: stamp, message: message.to_vec()});
+
+        // default store incoming 
+        // buffer.push(time_map::TimeMap{timestamp: stamp, message: message.to_vec()});
+
         // Device Config
         // mandala_pad
         if message[0] == 144 {
+            // default madandala
+            conn_out.send(&[message[0], buffer[buffer.len() - 2].message[2], message[2]]).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+
+            // playing not from 2nd Midi input
             conn_out.send(&[message[0], buffer[buffer.len() - 2].message[2], message[2]]).unwrap_or_else(|_| println!("Error when forwarding message ..."));
 
         } else {
             // Default device config
-            conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+            // conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+
+            // save 2nd Midi input
+            buffer.push(time_map::TimeMap{timestamp: stamp, message: message.to_vec()});
         }
-        triggers::random::trigger(stamp, message, &mut conn_out);
+        // patterns::trigger(stamp, message, &mut conn_out);
     }, ())?;
 
     println!("Connections open, forwarding from '{}' to '{}' (press enter to exit) ...", in_port_name, out_port_name);
