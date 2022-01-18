@@ -1,8 +1,9 @@
 use std::thread::sleep;
 use std::time::Duration;
+use crate::time_map;
 
 // Working rules and example
-pub fn play(index_start: usize, conn_out: &mut midir::MidiOutputConnection, buffer: &Vec<TimeMap>) {
+pub fn play(index_start: usize, conn_out: &mut midir::MidiOutputConnection, buffer: &Vec<time_map::TimeMap>) {
   let index_stop = index_start + 1;
   let note_duration = buffer[index_stop].timestamp - buffer[index_start].timestamp;
   let mut rest_duration = 0;

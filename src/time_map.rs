@@ -2,12 +2,12 @@ extern crate async_std;
 extern crate rand;
 
 
-use std::thread::sleep;
-use std::time::Duration;
+// use std::thread::sleep;
+// use std::time::Duration;
 use std::vec::Vec;
 use std::sync::Mutex;
 // use self::async_std::task;
-use rand::Rng;
+// use rand::Rng;
 
 
 pub struct TimeMap {
