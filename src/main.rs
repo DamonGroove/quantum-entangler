@@ -70,6 +70,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let _conn_in_note_cloner = midi_in_note_cloner.connect(&in_port_note_cloner, "midir-forward", move |stamp, message, _| {
         let mut buffer = time_map::MIDI_BUFFER.lock().unwrap();
         buffer.push(time_map::TimeMap{timestamp: stamp, message: message.to_vec()});
+        println!("Cloner {:?}", message);
     }, ())?;
 
     // _conn_in needs to be a named parameter, because it needs to be kept alive until the end of the scope
@@ -83,12 +84,24 @@ fn run() -> Result<(), Box<dyn Error>> {
 
         // Device Config
         // mandala_pad
+        println!("Trigger Message {:?}", message);
         if message[0] == 144 {
-            // default madandala
-            conn_out.send(&[message[0], buffer[buffer.len() - 2].message[2], message[2]]).unwrap_or_else(|_| println!("Error when forwarding message ..."));
 
-            // playing note from 2nd Midi input
-            conn_out.send(&[message[0], buffer[buffer.len() - 3].message[2], message[2]]).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+            if message[2] != 0 {
+                // default madandala
+                // conn_out.send(&[message[0], buffer[buffer.len() - 2].message[2], message[2]]).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+
+                // playing note from 2nd Midi input
+                conn_out.send(&[message[0], buffer[buffer.len() - 2].message[2], message[2]]).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+                println!("Trigger {:?}", buffer.len());
+            } else {
+                //// Memorize Active notes so the stop midi message deactives that correct note ////
+                // default madandala
+                // conn_out.send(&[message[0], buffer[buffer.len() - 2].message[2], message[2]]).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+
+                // playing note from 2nd Midi input
+                conn_out.send(&[message[0], buffer[buffer.len() - 2].message[2], message[2]]).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+            }
 
         // } else if {
 
@@ -97,7 +110,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             // conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
 
             // save 2nd Midi input
-            buffer.push(time_map::TimeMap{timestamp: stamp, message: message.to_vec()});
+            // buffer.push(time_map::TimeMap{timestamp: stamp, message: message.to_vec()});
         }
         // patterns::trigger(stamp, message, &mut conn_out);
     }, ())?;
