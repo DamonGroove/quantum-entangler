@@ -9,7 +9,7 @@ use midir::{MidiInput, MidiOutput, MidiIO, Ignore};
 mod time_map;
 
 
-fn main() {
+fn director() {
     match run() {
         Ok(_) => (),
         Err(err) => println!("Error: {}", err)
