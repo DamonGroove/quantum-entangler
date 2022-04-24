@@ -1,7 +1,7 @@
 [package]
 name = "quantum-entangler"
 version = "0.1.0"
-edition = "2022"
+edition = "2021"
 description = "Sound as Code"
 repository = "https://github.com/damongroove/quantum-entangler"
 license = "MIT"
