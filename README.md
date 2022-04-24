@@ -14,10 +14,5 @@
 * run `cargo install quantum-entangler`
 
 ## License
-
  * MIT license
    ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
-   
-## Contribution
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
