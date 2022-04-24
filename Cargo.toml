@@ -1,12 +1,10 @@
 [package]
 name = "quantum-entangler"
 version = "0.1.0"
-edition = "2021"
-description = "Midi analysis and manipulation"
+edition = "2022"
+description = "Sound as Code"
 repository = "https://github.com/damongroove/quantum-entangler"
-license = "MIT OR Apache-2.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
 
 [dependencies]
 midir = "0.7.0"
