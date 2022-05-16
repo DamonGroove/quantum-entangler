@@ -36,7 +36,8 @@ pub mod setup {
         let _conn_in = midi_in.connect(&in_port, "midir-forward", move |stamp, message, _| {
             conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
             // Start here
-            super::perform::trigger(stamp, message, &mut conn_out);
+            let trigger = super::perform::Trigger {timestamp: stamp, message: message, conn_out: &mut conn_out};
+            trigger.cycle(3);
         }, ())?;
     
         println!("Connections open, forwarding from '{}' to '{}' (press enter to exit) ...", in_port_name, out_port_name);
@@ -75,10 +76,10 @@ pub mod perform {
     use std::time::Duration;
     use std::vec::Vec;
     // use self::async_std::task;
-    use rand::Rng;
+    use crate::pattern;
 
     // Working rules and example
-    fn note(index_start: usize, conn_out: &mut midir::MidiOutputConnection, buffer: &Vec<super::time::Map>) {
+    pub fn note(index_start: usize, conn_out: &mut midir::MidiOutputConnection, buffer: &Vec<super::time::Map>) {
         let index_stop = index_start + 1;
         let note_duration = buffer[index_stop].timestamp - buffer[index_start].timestamp;
         let mut rest_duration = 0;
@@ -123,34 +124,36 @@ pub mod perform {
         }
     }
 
-    pub fn trigger(timestamp: u64, message: &[u8], conn_out: &mut midir::MidiOutputConnection) {
-        // Forward realtime message right away
-        // conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
-        println!("{}: {:?} (len = {})", timestamp, message, message.len());
+    pub struct Trigger<'a> {
+        pub timestamp: u64,
+        pub message: &'a [u8],
+        pub conn_out: &'a mut midir::MidiOutputConnection
+    }
+
+    impl Trigger<'_> {
+        pub fn cycle(self, every: usize) {
+            println!("{}: {:?} (len = {})", self.timestamp, self.message, self.message.len());
       
-        let mut buffer = super::time::MIDI_BUFFER.lock().unwrap();
-        buffer.push(super::time::Map{timestamp: timestamp, message: message.to_vec()});
-      
-        if message[2] == 0 {
-            //^^Should never change^^
-          
-      
-            // custom scripting starts here
-      
-            // Working rules and example
-            if buffer.len() % 3 == 0 { 
-                let mut rng = rand::thread_rng();
-      
-                let cycle = rng.gen_range(0..5);
-                println!("Play {} notes", cycle);
-                for _ in 0..cycle {
-                    let index = rng.gen_range(0..buffer.len() - 1);
-                    if buffer[index].message[2] != 0 {
-                        note(index, conn_out, &buffer);
-                    }
+            let mut buffer = super::time::MIDI_BUFFER.lock().unwrap();
+            buffer.push(super::time::Map{timestamp: self.timestamp, message: self.message.to_vec()});
+        
+            // Trigger on a release midi message
+            if super::characteristics::release_note(self.message) {
+                //^^Should never change^^
+                // custom scripting starts here
+        
+                // Working rules and example
+                if buffer.len() % every == 0 {
+                    pattern::random::cycle(0..3, self.conn_out)
                 }
-            }
-        } 
+            } 
+        }
+    }
+}
+
+pub mod characteristics {
+    pub fn release_note(message: &[u8]) -> bool {
+        message[2] == 0
     }
 }
 
