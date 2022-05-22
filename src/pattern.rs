@@ -1,4 +1,4 @@
-use crate::midi::time;
-use crate::midi::perform;
+use crate::midi;
+use crate::device;
 
 pub mod random;
