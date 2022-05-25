@@ -1,78 +1,114 @@
 use std::thread::sleep;
 use std::time::Duration;
-use std::vec::Vec;
-// use self::async_std::task;
-use crate::pattern;
+use crossbeam;
+
+use crate::midi;
 
 // Working rules and example
-pub fn note(index_start: usize, conn_out: &mut midir::MidiOutputConnection, buffer: &Vec<super::time::Map>) {
-  let index_stop = index_start + 1;
-  let note_duration = buffer[index_stop].timestamp - buffer[index_start].timestamp;
-  let mut rest_duration = 0;
-  
-  if index_stop <= buffer.len() - 1 {
-    // println!("{:?}, {:?}", buffer[index_stop].message, buffer[index_start].message);
+
+pub struct Note<'a> {
+  pub output: &'a mut midir::MidiOutputConnection
+}
+
+impl Note<'_> {
+  pub fn new(&mut self, start_index: usize, mut duration: u64, buffer: &mut std::sync::MutexGuard<std::vec::Vec<midi::time::MidiBuffer>>) {
+    // If not a release note
+    // let buffer =  super::time::MIDI_BUFFER.lock().unwrap();
+    let (stop_index, stop_timestamp, stop_message) = find_stop_message(start_index, buffer);
+    crossbeam::scope(|scope| {
+      scope.spawn(|_| {
+        let note_duration = stop_timestamp - buffer[start_index].timestamp;
     
-    let _ = conn_out.send(&buffer[index_start].message).unwrap_or_else(|_| println!("Error when forwarding message ...")); 
+        if stop_index <= buffer.len() - 1 && !super::attribute::release_note(buffer[start_index].message.to_vec()) {
+      // println!("{:?}, {:?}", buffer[index_stop].message, buffer[index_start].message);
 
-    // Note Duration
-    sleep(Duration::from_micros(note_duration));
+      
+          println!("{:?} => {:?}", &buffer[start_index].message, &stop_message);
+      
+          let _ = &self.output.send(&buffer[start_index].message).unwrap_or_else(|_| println!("Error when forwarding message ...")); 
 
-    let _ = conn_out.send(&buffer[index_stop].message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+          // Note Duration
+          if note_duration <= duration {
+            sleep(Duration::from_micros(note_duration));
 
-    if index_stop != buffer.len() - 1 {
-      rest_duration = buffer[index_stop + 1].timestamp - buffer[index_stop].timestamp;
+            let _ = &self.output.send(&stop_message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+
+            if stop_index != buffer.len() - 1 && duration != 0 {
+              duration = stop_timestamp - buffer[start_index].timestamp;
+            }
+            // Rest Notes
+            sleep(Duration::from_micros(duration - note_duration));
+          } else {
+            sleep(Duration::from_micros(duration));
+            let _ = &self.output.send(&stop_message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
+          }
+  
+        }
+      });
+    })
+    .expect("A child thread panicked");
+  }
+
+  pub fn forward(&mut self, message: &[u8]) {
+    crossbeam::scope(|scope| {
+      scope.spawn(|_| {
+        println!("{:?}", message);
+    
+        let _ = &self.output.send(message).unwrap_or_else(|_| println!("Error when forwarding message ...")); 
+      });
+    })
+    .expect("A child thread panicked");
+  }
+}
+
+fn find_stop_message<'a>(start_index: usize, buffer: &mut std::sync::MutexGuard<std::vec::Vec<midi::time::MidiBuffer>>) -> (usize, u64, Vec<u8>) {
+  let mut stop_index = start_index + 1;
+  let start_tone = buffer[start_index].message[1];
+  let mut stop_id = buffer[stop_index].message[0];
+
+  while  stop_index < buffer.len() - 1 {
+    if buffer[stop_index].message[1] == start_tone && buffer[stop_index].message[2] == 0 {
+      let stop_message: Vec<u8> = [buffer[stop_index].message[0], buffer[stop_index].message[1], buffer[stop_index].message[2]].to_vec();
+      return (stop_index, buffer[stop_index].timestamp, stop_message)
     }
-    // Rest Notes
-    sleep(Duration::from_micros(rest_duration));
 
+    stop_index += 1;
 
-    ////////////// `async` blocks are only allowed in Rust 2018 or later /////////////////
-    // task::spawn(async {
-    //   // some work here
-    //   // Note Duration
-    //   // task::Builder::new().name(conn_out.send(&buffer[index_start].message).unwrap_or_else(|_| println!("Error when forwarding message ..."))).spawn(async {
-    //   //   task::sleep(Duration::from_micros(note_duration));
-    //   // });   
-    //   task::sleep(Duration::from_micros(note_duration));
-    //   let _ = conn_out.send(&buffer[index_stop].message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
-
-    //   let rest_duration = 0;
-    //   if index_stop != buffer.len() - 1 {
-    //     rest_duration = buffer[index_stop].timestamp - buffer[index_stop + 1].timestamp;
-    //   }
-    //   // Rest Notes
-    //   // task::Builder::new().name(conn_out.send(&buffer[index_stop].message).unwrap_or_else(|_| println!("Error when forwarding message ...")).spawn(async {
-    //   //   task::sleep(Duration::from_micros(rest_duration));
-    //   // });
-    //   task::sleep(Duration::from_micros(rest_duration));
-    // });
+    if stop_id == buffer[start_index].message[0] {
+      stop_id = buffer[stop_index].message[0];
+    }
   }
+
+  let default_message: Vec<u8> = [stop_id, start_tone, 0].to_vec();
+  let default_stop = midi::time::MidiBuffer {timestamp: buffer[start_index + 1].timestamp, message: default_message};
+  (start_index + 1, default_stop.timestamp, default_stop.message)
 }
 
-pub struct Trigger<'a> {
-  pub timestamp: u64,
-  pub message: &'a [u8],
-  pub conn_out: &'a mut midir::MidiOutputConnection
+pub fn trigger(_timestamp: u64, message: &[u8], properties: &str, buffer_length: usize) -> bool {
+
+  // Trigger on a release midi message
+  if super::attribute::release_note(message.to_vec()) {
+    //^^Should never change^^
+    // custom scripting starts here
+
+    // Working rules and example
+    // use scripting language to proccess properties and trigger
+    let props: Vec<&str> = properties.split("|").collect();
+    match props[0] {
+      "cycle" => return cycle(props[1].parse::<usize>().unwrap(), buffer_length),
+      _ => return false
+    }
+    
+  }
+  false
 }
 
-impl Trigger<'_> {
-  pub fn cycle(self, every: usize) {
-    println!("{}: {:?} (len = {})", self.timestamp, self.message, self.message.len());
-
-    let mut buffer = super::time::MIDI_BUFFER.lock().unwrap();
-    buffer.push(super::time::Map{timestamp: self.timestamp, message: self.message.to_vec()});
-
-    // Trigger on a release midi message
-    if super::attribute::release_note(self.message) {
-      //^^Should never change^^
-      // custom scripting starts here
-
-      // Working rules and example
-      if buffer.len() % every == 0 {
-        // Refactor to define the pattern outside Trigger
-        pattern::random::cycle(0..3, self.conn_out)
-      }
-    } 
+fn cycle(sequence: usize, buffer_length: usize) -> bool {
+  
+  // let num: usize = sequence.parse().unwrap();
+  
+  if buffer_length % sequence == 0 {
+    return true
   }
+  false
 }

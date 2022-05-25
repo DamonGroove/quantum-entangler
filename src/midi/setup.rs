@@ -2,49 +2,41 @@ use std::io::{stdin, stdout, Write};
 use std::error::Error;
 use midir::{MidiInput, MidiOutput, MidiIO, Ignore};
 
+use crate::pattern;
     
-// fn new() {
-//     match forward() {
-//         Ok(_) => (),
-//         Err(err) => println!("Error: {}", err)
-//     }
-// }
-    
-#[cfg(not(target_arch = "wasm32"))] // conn_out is not `Send` in Web MIDI, which means it cannot be passed to connect
-pub fn forward() -> Result<(), Box<dyn Error>> {
+#[cfg(not(target_arch = "wasm32"))] // output is not `Send` in Web MIDI, which means it cannot be passed to connect
+pub fn intercept(trigger: String, pattern: String) -> Result<(), Box<dyn Error>> {
+
+  let midi_out = MidiOutput::new("midir forwarding output")?;
+  let out_port = select_port(&midi_out, "output")?;
+  let mut output = midi_out.connect(&out_port, "midir-forward")?;
   let mut midi_in = MidiInput::new("midir forwarding input")?;
   midi_in.ignore(Ignore::None);
-  let midi_out = MidiOutput::new("midir forwarding output")?;
-
   let in_port = select_port(&midi_in, "input")?;
-  println!();
-  let out_port = select_port(&midi_out, "output")?;
 
-  println!("\nOpening connections");
-  let in_port_name = midi_in.port_name(&in_port)?;
-  let out_port_name = midi_out.port_name(&out_port)?;
+  let _input = midi_in.connect(&in_port, "midir-forward", move |stamp, message, _| {
+    
+    let mut note = super::perform::Note {output: &mut output};
+    let mut buffer = super::time::MIDI_BUFFER.lock().unwrap();
 
-  let mut conn_out = midi_out.connect(&out_port, "midir-forward")?;
-
-
-  // _conn_in needs to be a named parameter, because it needs to be kept alive until the end of the scope
-  let _conn_in = midi_in.connect(&in_port, "midir-forward", move |stamp, message, _| {
-    conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
-    // Start here
-    let trigger = super::perform::Trigger {timestamp: stamp, message: message, conn_out: &mut conn_out};
-    trigger.cycle(3);
+    note.forward(message);
+    // println!("{}: {:?} (len = {})", stamp, message, message.len());
+    
+    buffer.push(super::time::MidiBuffer{timestamp: stamp, message: message.to_vec()});
+    // Trigger if buffer over certain length
+    if buffer.len() > 6 && super::perform::trigger(stamp, message, &trigger, buffer.len()) {
+      pattern::new(&pattern, &mut note, &mut buffer);
+    }
   }, ())?;
 
-  println!("Connections open, forwarding from '{}' to '{}' (press enter to exit) ...", in_port_name, out_port_name);
-
-  let mut input = String::new();
-  stdin().read_line(&mut input)?; // wait for next enter key press
+  let mut std_input = String::new();
+  stdin().read_line(&mut std_input)?; // wait for next enter key press
 
   println!("Closing connections");
   Ok(())
 }
 
-fn select_port<T: MidiIO>(midi_io: &T, descr: &str) -> Result<T::Port, Box<dyn Error>> {
+pub fn select_port<T: MidiIO>(midi_io: &T, descr: &str) -> Result<T::Port, Box<dyn Error>> {
   println!("Available {} ports:", descr);
   let midi_ports = midi_io.ports();
   for (i, p) in midi_ports.iter().enumerate() {
@@ -59,8 +51,10 @@ fn select_port<T: MidiIO>(midi_io: &T, descr: &str) -> Result<T::Port, Box<dyn E
   Ok(port.clone())
 }
 
+
+
 #[cfg(target_arch = "wasm32")]
-fn forward() -> Result<(), Box<dyn Error>> {
+fn intercept() -> Result<(), Box<dyn Error>> {
   println!("test_forward cannot run on Web MIDI");
   Ok(())
 }
