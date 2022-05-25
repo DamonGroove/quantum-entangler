@@ -26,6 +26,14 @@
   [this](https://www.rust-lang.org/tools/install) guide.
 * run `cargo install quantum-entangler`
 
+## Getting Started
+
+* You can see the example `./examples/midi_forward_trigger_note` and play around with the `note_values` and trigger `value`
+* If you clone the repo you can just run `cargo run --example midi_forward_trigger_note` then select your output and input midi ports
+* You can set your input as a virtual midi keyboard or usb midi keyboard, a virtual midi port on computer as your output, open up your DAW like Logic Pro X, select your output in your midi preferences, attach a virtual instrument track and go crazy on your keyboard!
+* You can also build your own script using the `midi.setup.intercept()` function if you install the package
+* See the Rhythm as Code section for more details
+
 ## License
  * MIT license
    ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
