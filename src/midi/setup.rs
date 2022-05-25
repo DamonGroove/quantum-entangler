@@ -15,11 +15,17 @@ pub fn intercept(trigger: String, pattern: String) -> Result<(), Box<dyn Error>>
   let in_port = select_port(&midi_in, "input")?;
 
   let _input = midi_in.connect(&in_port, "midir-forward", move |stamp, message, _| {
-    let mut buffer = super::time::MIDI_BUFFER.lock().unwrap();
+    
     let mut note = super::perform::Note {output: &mut output};
-    buffer.push(super::time::Map{timestamp: stamp, message: message.to_vec()});
-    if super::perform::trigger(stamp, message, &trigger) {
-      note.new(pattern::new(&pattern));
+    let mut buffer = super::time::MIDI_BUFFER.lock().unwrap();
+
+    note.forward(message);
+    // println!("{}: {:?} (len = {})", stamp, message, message.len());
+    
+    buffer.push(super::time::MidiBuffer{timestamp: stamp, message: message.to_vec()});
+    // Trigger if buffer over certain length
+    if buffer.len() > 6 && super::perform::trigger(stamp, message, &trigger, buffer.len()) {
+      pattern::new(&pattern, &mut note, &mut buffer);
     }
   }, ())?;
 
