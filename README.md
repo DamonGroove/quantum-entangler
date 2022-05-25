@@ -11,7 +11,7 @@
 * The second pipe of the pattern config is a list of numbers `1-9` defining the note value that should be triggered
 * Ex: `4` => Quarter Note, `8` => 8th Note, `3` => Quarter Note Triplet
 
-* More to come - future versions will not be backwards compatabile within `0.1.*`, with the nature of music composition
+* More to come - future versions will not be backwards compatible within `0.1.*`, with the nature of music composition
 
 [![Crates.io](https://img.shields.io/crates/v/quantum-entangler.svg)](https://crates.io/crates/quantum-entangler)
 [![Docs.rs](https://docs.rs/quantum-entangler/badge.svg)](https://docs.rs/quantum-entangler)
