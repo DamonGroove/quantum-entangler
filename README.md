@@ -4,8 +4,8 @@
 * In version 0.1.1 we are able to pass a small script/config to midi.setup.intercept() that defines a trigger and pattern
 
 * The first part/pipe of the trigger config `cycle` is how the pattern should be triggered
-* The second pipe of the trigger config, ex: `4`, is how often the trigger occurs
-* The trigger config `cycle|4` would trigger a pattern every `4` notes played
+* The second pipe of the trigger config, ex: `2`, is how often the trigger occurs
+* The trigger config `cycle|2` would trigger a pattern every `2` notes played
 
 * The first part/pipe of the pattern config `random` is the pattern for selecting which previous played notes should be triggered
 * The second pipe of the pattern config is a list of numbers `1-9` defining the note value that should be triggered
