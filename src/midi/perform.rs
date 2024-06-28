@@ -67,14 +67,14 @@ fn find_stop_message<'a>(start_index: usize, buffer: &mut std::sync::MutexGuard<
   let mut stop_id = buffer[stop_index].message[0];
 
   while  stop_index < buffer.len() - 1 {
-    if buffer[stop_index].message[1] == start_tone && buffer[stop_index].message[2] == 0 {
+    if buffer[stop_index].message.len() == 3 && buffer[stop_index].message[1] == start_tone && buffer[stop_index].message[2] == 0 {
       let stop_message: Vec<u8> = [buffer[stop_index].message[0], buffer[stop_index].message[1], buffer[stop_index].message[2]].to_vec();
       return (stop_index, buffer[stop_index].timestamp, stop_message)
     }
 
     stop_index += 1;
 
-    if stop_id == buffer[start_index].message[0] {
+    if buffer[stop_index].message.len() == 3 && stop_id == buffer[start_index].message[0] {
       stop_id = buffer[stop_index].message[0];
     }
   }

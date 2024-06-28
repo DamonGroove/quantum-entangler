@@ -34,6 +34,15 @@
 * You can also build your own script using the `midi.setup.intercept()` function if you install the package
 * See the Rhythm as Code section for more details
 
+## Mac setup
+  1. Download and install a virtual midi keyboard, example: https://flit.github.io/projects/midikeys/
+  2. Open the launchpad, search midi and open 'Audio Midi Setup'. Navigate to the 'Window' dropdown in the top left menu bar and select 'Show MIDI Studio'. Open the 'IAC Driver' and make sure 'Device is online' is checked.
+  3. Open midi.city in Chrome and allow connections to your midi devices. Confirm that the 'IAC Driver' is selected when clicking the plug icon.
+  4. In the root of the repository run `cargo run --example midi_forward_trigger_note`
+  5. Type in the device number of the 'IAC Driver' as the output
+  6. Type in the device number of the 'MidiKeys' device as the input or another if a different midi device is connected
+  7. Play the virtual midi keyboard and notes should trigger depending on what was configured in the midi_forward_trigger_note file.
+
 ## License
  * MIT license
    ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)

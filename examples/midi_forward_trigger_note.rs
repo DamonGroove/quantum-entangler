@@ -2,9 +2,9 @@ extern crate quantum_entangler;
 
 fn main() {
   // The config cycle is how the pattern should be triggered
-  // 4 is the often the trigger occurs
-  // The trigger occurs every 4 notes played
-  let trigger = "cycle|4".to_string();
+  // 4 is how often the trigger occurs
+  // The trigger occurs every 2 notes played
+  let trigger = "cycle|2".to_string();
 
   // random is the pattern for selecting which previous played notes should be played when the pattern is triggered
   // The next config is a list of numbers 1-9 defining the note value that should be triggered: 
